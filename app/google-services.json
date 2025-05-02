@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "446331904307",
+    "project_id": "deep-chat-37827",
+    "storage_bucket": "deep-chat-37827.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446331904307:android:428384205f6c0d6da5de46",
+        "android_client_info": {
+          "package_name": "com.example.deepchat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "446331904307-spcrqq0dt2h5s1nr983ojlitv1p56he4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.deepchat",
+            "certificate_hash": "31c5325f87e7b54c20885106ac522f48b2df85fd"
+          }
+        },
+        {
+          "client_id": "446331904307-9rca6ee2nv8ro6ome4atp9ia97ivqqtt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCDklYmnALyCKfWJbE1-dm9MrM0SUP_OAI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "446331904307-9rca6ee2nv8ro6ome4atp9ia97ivqqtt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
