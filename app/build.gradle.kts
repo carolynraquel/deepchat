@@ -91,4 +91,13 @@ dependencies {
 
     // Google Auth
     implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // WebSocket for ElevenLabs
+    implementation("org.java-websocket:Java-WebSocket:1.5.3")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation ("com.squareup.okio:okio:3.0.0")  // or the latest version
+
+    // For audio handling
+    implementation("androidx.media3:media3-exoplayer:1.6.1")
+    implementation("androidx.media3:media3-ui:1.6.1")
 }

@@ -1,7 +1,10 @@
 package com.example.deepchat.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.media.MediaPlayer
-import android.media.MediaRecorder
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,10 +25,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.example.deepchat.elevenlabs.ElevenLabsWebSocketManager
+import com.example.deepchat.utils.startAudioRecording
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.*
 import java.io.File
-import java.io.IOException
 import java.util.*
 
 data class ChatMessage(
@@ -40,93 +45,78 @@ data class ChatMessage(
 fun ChatScreen(onSignOut: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val audioFile = remember { File(context.cacheDir, "audio_record.3gp") }
 
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var textInput by remember { mutableStateOf("") }
     var isRecording by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
+    var recordingJob: Job? by remember { mutableStateOf(null) }
 
-    // Media recorder and player
-    val recorder = remember { MediaRecorder() }
-    val player = remember { MediaPlayer() }
+    // Initialize ElevenLabs WebSocket Manager
+    val elevenLabsManager = remember {
+        ElevenLabsWebSocketManager(
+            context = context,
+            apiKey = "sk_d27b947a336d9384d02eeb5d4092ff95578b3814b720d65d", // My API Key
+            onTextReceived = { text ->
+                val isUser = text.startsWith("User:") // Adjust logic as needed
+                messages = messages + ChatMessage(
+                    text = text,
+                    isUser = isUser
+                )
+            },
+            onAudioReceived = { audioUrl ->
+                // Handle audio URL from ElevenLabs
+                // This might update the last AI message with the audio URL
+                if (messages.isNotEmpty() && !messages.last().isUser) {
+                    val lastMessage = messages.last()
+                    messages = messages.dropLast(1) + lastMessage.copy(audioUrl = audioUrl)
+                }
+            }
+        )
+    }
 
-    // For handling lifecycle
+    // Connect to ElevenLabs when screen opens
+    LaunchedEffect(Unit) {
+        elevenLabsManager.connect()
+    }
+
+    // Cleanup when leaving screen
     DisposableEffect(Unit) {
         onDispose {
-            try {
-                player.release()
-                recorder.release()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            elevenLabsManager.disconnect()
+            recordingJob?.cancel()
         }
     }
 
-    // Functions for audio handling
+    // Functions for handling audio recording
     val startRecording = {
-        try {
-            recorder.apply {
-                setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
-                setOutputFile(audioFile.absolutePath)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB)
-                prepare()
-                start()
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            recordingJob = scope.launch {
+                startAudioRecording(context) { audioData ->
+                    elevenLabsManager.sendAudio(audioData)
+                }
             }
             isRecording = true
             true
-        } catch (e: IOException) {
-            e.printStackTrace()
+        } else {
+            Toast.makeText(
+                context,
+                "Recording permission is required",
+                Toast.LENGTH_SHORT
+            ).show()
             false
         }
     }
 
     val stopRecording = {
-        if (isRecording) {
-            try {
-                recorder.stop()
-                recorder.reset()
-                isRecording = false
-                true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                false
-            }
-        } else false
-    }
-
-    // Mock simulation of sending to ElevenLabs and getting response
-    // This would be replaced with your actual API call
-    val processVoiceInput = {
-        if (stopRecording()) {
-            isProcessing = true
-
-            // Simulate API call delay
-            scope.launch {
-                delay(1500) // Simulate network delay
-
-                // Add user message (would normally be transcribed text from ElevenLabs)
-                val userMessage = ChatMessage(
-                    text = "This is a simulated voice message from the user",
-                    isUser = true
-                )
-                messages = messages + userMessage
-
-                delay(1000) // Simulate processing time
-
-                // Add AI response
-                val aiResponse = ChatMessage(
-                    text = "This is a simulated response from ElevenLabs AI. In a real implementation, this would be generated by your AI agent based on your voice input.",
-                    isUser = false,
-                    audioUrl = "dummy_url" // replaced with actual audio URL
-
-                )
-                messages = messages + aiResponse
-
-                isProcessing = false
-            }
-        }
+        recordingJob?.cancel()
+        recordingJob = null
+        isRecording = false
+        true
     }
 
     val sendTextMessage = {
@@ -137,23 +127,22 @@ fun ChatScreen(onSignOut: () -> Unit) {
                 isUser = true
             )
             messages = messages + userMessage
+
+            // Clear input
+            val messageToSend = textInput
             textInput = ""
 
-            isProcessing = true
-
-            // Simulate API call
+            // Send to ElevenLabs (modify this based on their text API)
             scope.launch {
-                delay(1000) // Simulate network delay
-
-                // Add AI response
-                val aiResponse = ChatMessage(
-                    text = "This is a simulated response from ElevenLabs AI based on your text input: \"${userMessage.text}\"",
-                    isUser = false,
-                    audioUrl = "dummy_URL"
-                )
-                messages = messages + aiResponse
-
-                isProcessing = false
+                try {
+                    // You'd need to implement this method in your WebSocketManager
+                    // to send text messages instead of audio
+                    elevenLabsManager.sendText(messageToSend)
+                    isProcessing = true
+                } catch (e: Exception) {
+                    Log.e("ChatScreen", "Error sending message", e)
+                    isProcessing = false
+                }
             }
         }
     }
@@ -246,7 +235,7 @@ fun ChatScreen(onSignOut: () -> Unit) {
                     IconButton(
                         onClick = {
                             if (isRecording) {
-                                processVoiceInput()
+                                stopRecording()
                             } else {
                                 startRecording()
                             }
@@ -301,9 +290,8 @@ fun MessageBubble(message: ChatMessage, modifier: Modifier = Modifier) {
             )
         }
 
-        // Would add audio playback controls if this was a real implementation
+        // Audio playback button if message has audio
         message.audioUrl?.let {
-            // In a real app, this would be a button to play the audio
             TextButton(
                 onClick = { /* Play audio logic */ },
                 modifier = Modifier.align(if (message.isUser) Alignment.End else Alignment.Start)

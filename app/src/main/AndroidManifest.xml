@@ -2,11 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+<!--PERMISSIONS-->
 <!--    Record Audio Permission-->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-
-<!--    Internet Permission for API Calls-->
+<!--    Allows ElevenLabs to control audio routing-->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+<!--    API Calls-->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
