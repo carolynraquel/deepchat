@@ -15,18 +15,28 @@ android {
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0" //my first official version OMG
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
-
+    // Define your signing configuration
+    signingConfigs {
+        create("release") { //define signing config with create keyword
+            // secure keystore
+            storeFile = file("C:/Users/Carolyn/keystores/deepchat-release.jks")
+            storePassword = "300gabe@R!"
+            keyAlias = "deepchat-key"
+            keyPassword = "300gabe@R!"
+        }
+    }
     buildTypes {
-        release {
-            isMinifyEnabled = false
+         getByName("release") {
+            isMinifyEnabled = true // Enable ProGuard for release builds
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -101,3 +111,4 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.6.1")
     implementation("androidx.media3:media3-ui:1.6.1")
 }
+
